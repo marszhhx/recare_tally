@@ -116,8 +116,6 @@ function App() {
     );
   });
   const [customTallyTypes, setCustomTallyTypes] = useState([]);
-  const [openClearDialog, setOpenClearDialog] = useState(false);
-  const [clearConfirmation, setClearConfirmation] = useState('');
   const [openAddTallyDialog, setOpenAddTallyDialog] = useState(false);
   const [newTallyName, setNewTallyName] = useState('');
   const [snackbar, setSnackbar] = useState({
@@ -469,16 +467,6 @@ function App() {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  const handleOpenClearDialog = () => {
-    setOpenClearDialog(true);
-    setClearConfirmation('');
-  };
-
-  const handleCloseClearDialog = () => {
-    setOpenClearDialog(false);
-    setClearConfirmation('');
-  };
-
   const handleOpenAddTallyDialog = () => {
     setOpenAddTallyDialog(true);
     setNewTallyName('');
@@ -586,46 +574,6 @@ function App() {
       setSnackbar({
         open: true,
         message: 'Error removing tally from Firebase',
-        severity: 'error',
-      });
-    }
-  };
-
-  const handleClearAllTallies = async () => {
-    if (clearConfirmation.toLowerCase() === 'confrim') {
-      const vancouverTime = getVancouverTime();
-      const resetTallies = initializeTallies(getAllTallyTypes());
-
-      try {
-        const todayDocId = getTodayDocId();
-        const docRef = doc(db, 'tallies', todayDocId);
-        await setDoc(docRef, {
-          tallies: resetTallies,
-          timezone: 'America/Vancouver',
-          customTallyTypes: customTallyTypes,
-          date: todayDocId,
-          createdAt: vancouverTime.toISOString(),
-        });
-
-        setTallies(resetTallies);
-        handleCloseClearDialog();
-        setSnackbar({
-          open: true,
-          message: 'All tallies have been cleared successfully.',
-          severity: 'success',
-        });
-      } catch (error) {
-        console.error('Error clearing tallies:', error);
-        setSnackbar({
-          open: true,
-          message: 'Error clearing tallies in Firebase',
-          severity: 'error',
-        });
-      }
-    } else {
-      setSnackbar({
-        open: true,
-        message: 'Please type "confrim" to clear all tallies.',
         severity: 'error',
       });
     }
@@ -924,21 +872,6 @@ function App() {
               </Button>
               <Button
                 variant='outlined'
-                color='error'
-                onClick={handleOpenClearDialog}
-                startIcon={<DeleteIcon />}
-                sx={{
-                  borderColor: '#d32f2f',
-                  color: '#d32f2f',
-                  '&:hover': {
-                    borderColor: '#b71c1c',
-                    backgroundColor: 'rgba(211, 47, 47, 0.04)',
-                  },
-                }}>
-                Clear All Tallies
-              </Button>
-              <Button
-                variant='outlined'
                 color='primary'
                 onClick={() => {
                   setShowHistory(!showHistory);
@@ -1017,88 +950,6 @@ function App() {
                 ))}
             </Box>
           )}
-
-          <Dialog
-            open={openClearDialog}
-            onClose={handleCloseClearDialog}
-            PaperProps={{
-              sx: { borderRadius: 0 },
-            }}>
-            <DialogTitle
-              sx={{
-                borderBottom: '1px solid #e0e0e0',
-                pb: 2,
-                color: '#d32f2f',
-              }}>
-              Confirm Clear All Tallies
-            </DialogTitle>
-            <DialogContent sx={{ pt: 3 }}>
-              <Typography variant='body1' sx={{ mb: 2 }}>
-                This action will reset all tally counts to zero. This cannot be
-                undone.
-              </Typography>
-              <Typography
-                variant='body1'
-                sx={{ fontWeight: 500, color: '#d32f2f', mb: 2 }}>
-                To confirm, please type "confrim" in the field below:
-              </Typography>
-              <TextField
-                autoFocus
-                margin='dense'
-                label='Confirmation'
-                type='text'
-                fullWidth
-                value={clearConfirmation}
-                onChange={(e) => setClearConfirmation(e.target.value)}
-                placeholder='Type "confrim"'
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: '#e0e0e0',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: '#d32f2f',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#d32f2f',
-                    },
-                  },
-                }}
-              />
-            </DialogContent>
-            <DialogActions
-              sx={{
-                borderTop: '1px solid #e0e0e0',
-                px: 3,
-                py: 2,
-              }}>
-              <Button
-                onClick={handleCloseClearDialog}
-                sx={{
-                  color: '#000000',
-                  '&:hover': {
-                    backgroundColor: 'rgba(0,0,0,0.04)',
-                  },
-                }}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleClearAllTallies}
-                variant='contained'
-                disabled={clearConfirmation.toLowerCase() !== 'confrim'}
-                sx={{
-                  backgroundColor: '#d32f2f',
-                  '&:hover': {
-                    backgroundColor: '#b71c1c',
-                  },
-                  '&.Mui-disabled': {
-                    backgroundColor: 'rgba(211, 47, 47, 0.12)',
-                  },
-                }}>
-                Clear All
-              </Button>
-            </DialogActions>
-          </Dialog>
 
           <Dialog
             open={openAddTallyDialog}
