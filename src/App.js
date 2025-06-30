@@ -20,24 +20,13 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import DeleteIcon from '@mui/icons-material/Delete';
 import HistoryIcon from '@mui/icons-material/History';
 import DownloadIcon from '@mui/icons-material/Download';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { db } from './firebase';
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  collection,
-  query,
-  orderBy,
-  limit,
-  getDocs,
-} from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import {
   DndContext,
@@ -72,11 +61,11 @@ const DEFAULT_TALLY_TYPES = [
 const getVancouverTime = () => {
   const now = new Date();
 
-  // 使用更简单的方法：直接计算温哥华时间
-  // 温哥华是UTC-8 (PST) 或 UTC-7 (PDT)
-  // 我们需要动态检测是PST还是PDT
+  // Use a simpler method: directly calculate Vancouver time
+  // Vancouver is UTC-8 (PST) or UTC-7 (PDT)
+  // We need to dynamically detect whether it's PST or PDT
 
-  // 获取温哥华时区的当前时间字符串
+  // Get current time string in Vancouver timezone
   const vancouverTimeString = now.toLocaleString('en-US', {
     timeZone: 'America/Vancouver',
     year: 'numeric',
@@ -88,12 +77,12 @@ const getVancouverTime = () => {
     hour12: false,
   });
 
-  // 解析时间字符串
+  // Parse the time string
   const [datePart, timePart] = vancouverTimeString.split(', ');
   const [month, day, year] = datePart.split('/');
   const [hour, minute, second] = timePart.split(':');
 
-  // 创建温哥华时间对象
+  // Create Vancouver time object
   const vancouverTime = new Date(year, month - 1, day, hour, minute, second);
 
   return vancouverTime;
@@ -186,11 +175,11 @@ function App() {
   // Get today's date in YYYY-MM-DD format for document ID using Vancouver time
   const getTodayDocId = () => {
     const now = new Date();
-    // 直接获取温哥华时区的日期字符串
+    // Directly get Vancouver timezone date string
     const vancouverDateString = now.toLocaleDateString('en-CA', {
       timeZone: 'America/Vancouver',
     });
-    return vancouverDateString; // 格式: YYYY-MM-DD
+    return vancouverDateString; // Format: YYYY-MM-DD
   };
 
   // Initialize tallies for all types
@@ -204,18 +193,9 @@ function App() {
     const hours = vancouverTime.getHours();
     const minutes = vancouverTime.getMinutes();
 
-    // 检查是否在午夜前后1分钟内
+    // Check if it's within 1 minute of midnight
     const isMidnight =
       (hours === 0 && minutes === 0) || (hours === 23 && minutes === 59);
-
-    console.log('Vancouver time check:', {
-      hours,
-      minutes,
-      isMidnight,
-      fullTime: vancouverTime.toLocaleString('en-US', {
-        timeZone: 'America/Vancouver',
-      }),
-    });
 
     return isMidnight;
   };
@@ -252,7 +232,6 @@ function App() {
 
   // Reset tallies at midnight
   const resetTalliesAtMidnight = async () => {
-    console.log('Resetting tallies at midnight...');
     const vancouverTime = getVancouverTime();
     const todayDocId = vancouverTime.toISOString().split('T')[0];
     const newDocRef = doc(db, 'tallies', todayDocId);
@@ -292,23 +271,23 @@ function App() {
       }
     };
 
-    // 每分钟检查一次
+    // Check every minute
     const interval = setInterval(checkMidnight, 60000);
 
-    // 立即检查一次当前时间
+    // Check immediately
     checkMidnight();
 
     return () => clearInterval(interval);
-  }, [customTallyTypes]);
+  }, []);
 
   // Fetch historical data with timezone consideration
   const fetchHistoricalData = async () => {
     try {
-      // 获取所有文档，不使用orderBy，避免createdAt字段问题
+      // Get all documents, don't use orderBy to avoid createdAt field issues
       const querySnapshot = await getDocs(collection(db, 'tallies'));
       const data = querySnapshot.docs.map((doc) => {
         const docData = doc.data();
-        // 将文档ID转换为温哥华时间
+        // Convert document ID to Vancouver time
         const vancouverDate = new Date(doc.id + 'T00:00:00');
         const formattedDate = vancouverDate.toLocaleString('en-US', {
           timeZone: 'America/Vancouver',
@@ -334,9 +313,9 @@ function App() {
         };
       });
 
-      // 按文档ID（日期）降序排序，确保最新的日期在前面
+      // Sort by document ID (date) in descending order to ensure latest dates are first
       const sortedData = data.sort((a, b) => {
-        return b.id.localeCompare(a.id); // 降序排序
+        return b.id.localeCompare(a.id); // Descending order
       });
 
       setHistoricalData(sortedData);
@@ -581,15 +560,15 @@ function App() {
 
   // Export historical data to Excel
   const exportToExcel = () => {
-    // 按日期从旧到新排序
+    // Sort by date from oldest to newest
     const sortedData = [...historicalData].sort((a, b) => {
       const dateA = new Date(a.id + 'T00:00:00');
       const dateB = new Date(b.id + 'T00:00:00');
-      return dateA - dateB; // 升序排序
+      return dateA - dateB; // Ascending order
     });
 
     const excelData = sortedData.map((day) => {
-      // 将日期分成星期几和日期两部分
+      // Split date into weekday and date parts
       const vancouverDate = new Date(day.id + 'T00:00:00');
       const weekday = vancouverDate.toLocaleString('en-US', {
         timeZone: 'America/Vancouver',
